@@ -9,11 +9,13 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
+import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Entity
+@Table(name = "banks")
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
@@ -21,25 +23,31 @@ public class Bank {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    public Long bank_id;
+    @Column(name = "bank_id")
+    private Long bankId;
 
+    @Column(nullable = false, unique = true)
     private String name;
+
+    @Column(nullable = false, unique = true)
     private String ifscCode;
 
-    @Column(updatable = false)
+    private String headOffice;
+
+    @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
+    @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
     @PrePersist
-    public void onCreate() {
+    protected void onCreate() {
         this.createdAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
     }
 
     @PreUpdate
-    public void onUpdate() {
+    protected void onUpdate() {
         this.updatedAt = LocalDateTime.now();
     }
-
 }

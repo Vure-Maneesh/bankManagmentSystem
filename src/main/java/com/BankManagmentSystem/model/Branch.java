@@ -4,45 +4,61 @@ import java.time.LocalDateTime;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
+import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Entity
+@Table(name = "branches")
+@Data
 @AllArgsConstructor
 @NoArgsConstructor
-@Data
 public class Branch {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    public Long branch_id;
+    @Column(name = "branch_id")
+    private Long branchId;
 
-    public String name;
+    @Column(nullable = false)
+    private String name;
 
-    public String address;
+    private String city;
 
-    public Bank bank_id;
+    private String address;
 
-    @Column(updatable = false)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "bank_id", nullable = false)
+    private Bank bank;
+
+    @OneToOne
+    @JoinColumn(name = "manager_id", unique = true)
+    private User branchManager;
+
+    @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
+    @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
     @PrePersist
-    public void onCreate() {
+    protected void onCreate() {
         this.createdAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
     }
 
     @PreUpdate
-    public void onUpdate() {
+    protected void onUpdate() {
         this.updatedAt = LocalDateTime.now();
     }
-
 }
