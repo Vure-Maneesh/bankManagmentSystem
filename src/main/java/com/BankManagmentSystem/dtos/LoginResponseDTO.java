@@ -1,5 +1,7 @@
 package com.BankManagmentSystem.dtos;
 
+import com.BankManagmentSystem.model.Role;
+
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -11,9 +13,7 @@ public class LoginResponseDTO {
 
     private String token;
     private Long userId;
-    private String role;
-
-    // optional (useful for manager/customer)
+    private Role role;
     private Long branchId;
 
 }

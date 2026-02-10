@@ -7,6 +7,9 @@ import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.BankManagmentSystem.dtos.ManagerApprovalResponseDTO;
+import com.BankManagmentSystem.dtos.ManagerTransferRequestDTO;
+import com.BankManagmentSystem.dtos.ManagerTransferResponseDTO;
 import com.BankManagmentSystem.dtos.BankRequestDTO.BankRequestDTO;
 import com.BankManagmentSystem.dtos.BankRequestDTO.BankResponseDTO;
 import com.BankManagmentSystem.dtos.BranchRequestDTO.BranchRequestDTO;
@@ -104,51 +107,67 @@ public class AdminServiceImpl implements AdminService {
 
     // ---------- APPROVE MANAGER ----------
     @Override
-    public void approveManager(Long managerId) throws ManagerNotFound {
+    public ManagerApprovalResponseDTO approveManager(Long managerId)
+            throws ManagerNotFound {
 
         User manager = userRepository.findById(managerId)
                 .orElseThrow(() -> new ManagerNotFound("Manager not found"));
 
         if (manager.getRole() != Role.BRANCH_MANAGER) {
-            throw new RuntimeException("User is not a manager");
+            throw new IllegalStateException("User is not a manager");
         }
 
         manager.setStatus(KycStatus.APPROVED);
         userRepository.save(manager);
+
+        return new ManagerApprovalResponseDTO(
+                manager.getUserId(),
+                manager.getName(),
+                manager.getStatus(),
+                "Manager approved successfully");
     }
 
     @Override
-    public void transferManager(Long managerId, Long targetBranchId) throws ManagerNotFound, BranchNotFound {
-        User manager = userRepository.findById(managerId).orElseThrow(() -> new ManagerNotFound("Manager Not Found"));
+    public ManagerTransferResponseDTO transferManager(ManagerTransferRequestDTO requestDTO)
+            throws ManagerNotFound, BranchNotFound {
+
+        User manager = userRepository.findById(requestDTO.getManagerId())
+                .orElseThrow(() -> new ManagerNotFound("Manager Not Found"));
 
         if (manager.getRole() != Role.BRANCH_MANAGER) {
-            throw new RuntimeException("User is not Branch Manager");
+            throw new IllegalStateException("User is not a Branch Manager");
         }
 
         if (manager.getStatus() != KycStatus.APPROVED) {
-            throw new RuntimeException("Approved manager can be Transfer");
+            throw new IllegalStateException("Only approved managers can be transferred");
         }
 
-        Branch targetbranch = branchRepository.findById(targetBranchId)
-                .orElseThrow(() -> new BranchNotFound("Branch not Exists"));
+        Branch targetBranch = branchRepository.findById(requestDTO.getTargetBranchId())
+                .orElseThrow(() -> new BranchNotFound("Target branch not found"));
 
-        if (targetbranch.getBranchManager() != null) {
-            throw new RuntimeException("Branch Has Already Assigned With Manager ");
+        if (targetBranch.getBranchManager() != null) {
+            throw new IllegalStateException("Target branch already has a manager");
         }
 
         Branch oldBranch = manager.getBranch();
+        Long oldBranchId = oldBranch != null ? oldBranch.getBranchId() : null;
 
         if (oldBranch != null) {
             oldBranch.setBranchManager(null);
             branchRepository.save(oldBranch);
-
         }
 
-        targetbranch.setBranchManager(manager);
-        manager.setBranch(targetbranch);
+        targetBranch.setBranchManager(manager);
+        manager.setBranch(targetBranch);
 
-        branchRepository.save(targetbranch);
+        branchRepository.save(targetBranch);
         userRepository.save(manager);
+
+        return new ManagerTransferResponseDTO(
+                manager.getUserId(),
+                oldBranchId,
+                targetBranch.getBranchId(),
+                "Manager transferred successfully");
     }
 
 }

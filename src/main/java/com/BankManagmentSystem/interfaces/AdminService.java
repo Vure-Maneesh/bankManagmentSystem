@@ -2,6 +2,9 @@ package com.BankManagmentSystem.interfaces;
 
 import java.util.List;
 
+import com.BankManagmentSystem.dtos.ManagerApprovalResponseDTO;
+import com.BankManagmentSystem.dtos.ManagerTransferRequestDTO;
+import com.BankManagmentSystem.dtos.ManagerTransferResponseDTO;
 import com.BankManagmentSystem.dtos.BankRequestDTO.BankRequestDTO;
 import com.BankManagmentSystem.dtos.BankRequestDTO.BankResponseDTO;
 import com.BankManagmentSystem.dtos.BranchRequestDTO.BranchRequestDTO;
@@ -18,11 +21,12 @@ public interface AdminService {
 
     BranchResponseDTO createBranch(BranchRequestDTO dto) throws BankNotFoundException, BranchAlreadyExists;
 
-    void approveManager(Long managerId) throws ManagerNotFound;
+    public ManagerApprovalResponseDTO approveManager(Long managerId)
+            throws ManagerNotFound;
 
     List<BranchResponseDTO> getAllBranches() throws BankNotFoundException;
 
-    void transferManager(Long managerId, Long targetBranchId)
+    ManagerTransferResponseDTO transferManager(ManagerTransferRequestDTO request)
             throws ManagerNotFound, BranchNotFound;
 
 }

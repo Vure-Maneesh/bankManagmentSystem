@@ -42,7 +42,7 @@ public class User {
     private String password;
 
     @Column(unique = true)
-    private Long mobile;
+    private String mobile;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

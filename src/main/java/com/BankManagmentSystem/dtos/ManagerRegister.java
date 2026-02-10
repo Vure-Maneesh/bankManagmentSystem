@@ -6,6 +6,7 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Past;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -27,9 +28,9 @@ public class ManagerRegister {
     @NotBlank
     private String email;
 
-    @NotNull
-    @Size(min = 10, max = 10)
-    private Long mobile;
+    @NotBlank
+    @Pattern(regexp = "^[6-9]\\d{9}$")
+    private String mobile;
 
     @NotBlank
     @Size(min = 8, max = 20)

@@ -15,11 +15,11 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     boolean existsByRole(Role role);
 
-    Optional<User> findByMobile(Long mobile);
+    Optional<User> findByMobile(String mobile);
 
     boolean existsByEmail(String email);
 
-    boolean existsByMobile(Long mobile);
+    boolean existsByMobile(String mobile);
 
     List<User> findByStatus(KycStatus status);
 

@@ -1,13 +1,12 @@
 package com.BankManagmentSystem.service;
 
-import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import com.BankManagmentSystem.dtos.ManagerRegister;
 import com.BankManagmentSystem.dtos.RegisterRequestDTO;
-import com.BankManagmentSystem.dtos.UserResponseDTO;
+import com.BankManagmentSystem.dtos.RegistrationResponseDTO;
 import com.BankManagmentSystem.exceptions.AdminAlreadyExists;
 import com.BankManagmentSystem.exceptions.EmailAlreadyExists;
 import com.BankManagmentSystem.exceptions.IncorrectPasswordException;
@@ -30,41 +29,42 @@ public class AuthServiceImple implements AuthService {
     private BranchRepository branchRepository;
 
     @Autowired
-    private ModelMapper mapper;
-
-    @Autowired
     private PasswordEncoder encoder;
 
     // ---------- COMMON VALIDATION ----------
-    private void validateEmailAndMobile(String email, Long mobile)
+    private void validateEmailAndMobile(String email, String mobile)
             throws EmailAlreadyExists, MobileNumberAlreadyExists {
+
         if (userRepository.existsByEmail(email)) {
             throw new EmailAlreadyExists("Email already registered");
         }
+
         if (userRepository.existsByMobile(mobile)) {
             throw new MobileNumberAlreadyExists("Mobile number already registered");
         }
     }
 
-    private void validatePasswordMatch(String password, String confirmPassword) throws IncorrectPasswordException {
+    private void validatePasswordMatch(String password, String confirmPassword)
+            throws IncorrectPasswordException {
+
         if (!password.equals(confirmPassword)) {
-            throw new IncorrectPasswordException("Password and Confirm Password do not match");
+            throw new IncorrectPasswordException(
+                    "Password and Confirm Password do not match");
         }
     }
 
     // ---------- CUSTOMER ----------
     @Override
-    public UserResponseDTO registerCustomer(RegisterRequestDTO dto)
-            throws EmailAlreadyExists, MobileNumberAlreadyExists, IncorrectPasswordException {
+    public RegistrationResponseDTO registerCustomer(RegisterRequestDTO dto)
+            throws EmailAlreadyExists, MobileNumberAlreadyExists,
+            IncorrectPasswordException {
 
-        // ✅ 1. confirm password check
         validatePasswordMatch(dto.getPassword(), dto.getConfirmPassword());
-
-        // ✅ 2. uniqueness check
         validateEmailAndMobile(dto.getEmail(), dto.getMobile());
 
         User user = new User();
-        user.setName(dto.getFullName());
+        user.setName(dto.getName());
+        user.setDob(dto.getDob());
         user.setEmail(dto.getEmail());
         user.setMobile(dto.getMobile());
         user.setPassword(encoder.encode(dto.getPassword()));
@@ -72,15 +72,25 @@ public class AuthServiceImple implements AuthService {
         user.setStatus(KycStatus.APPROVED);
 
         userRepository.save(user);
-        return mapper.map(user, UserResponseDTO.class);
+
+        RegistrationResponseDTO response = new RegistrationResponseDTO();
+        response.setUserId(user.getUserId());
+        response.setName(user.getName());
+        response.setEmail(user.getEmail());
+        response.setRole(user.getRole());
+        response.setStatus(user.getStatus());
+        response.setMessage("Customer registered successfully");
+        response.setToken(null);
+
+        return response;
     }
 
     // ---------- ADMIN ----------
     @Override
-    public UserResponseDTO registerAdmin(RegisterRequestDTO dto)
-            throws AdminAlreadyExists, EmailAlreadyExists, MobileNumberAlreadyExists, IncorrectPasswordException {
+    public RegistrationResponseDTO registerAdmin(RegisterRequestDTO dto)
+            throws AdminAlreadyExists, EmailAlreadyExists,
+            MobileNumberAlreadyExists, IncorrectPasswordException {
 
-        // ✅ confirm password
         validatePasswordMatch(dto.getPassword(), dto.getConfirmPassword());
 
         if (userRepository.existsByRole(Role.ADMIN)) {
@@ -90,7 +100,8 @@ public class AuthServiceImple implements AuthService {
         validateEmailAndMobile(dto.getEmail(), dto.getMobile());
 
         User admin = new User();
-        admin.setName(dto.getFullName());
+        admin.setName(dto.getName());
+        admin.setDob(dto.getDob());
         admin.setEmail(dto.getEmail());
         admin.setMobile(dto.getMobile());
         admin.setPassword(encoder.encode(dto.getPassword()));
@@ -98,17 +109,26 @@ public class AuthServiceImple implements AuthService {
         admin.setStatus(KycStatus.APPROVED);
 
         userRepository.save(admin);
-        return mapper.map(admin, UserResponseDTO.class);
+
+        RegistrationResponseDTO response = new RegistrationResponseDTO();
+        response.setUserId(admin.getUserId());
+        response.setName(admin.getName());
+        response.setEmail(admin.getEmail());
+        response.setRole(admin.getRole());
+        response.setStatus(admin.getStatus());
+        response.setMessage("Admin registered successfully");
+        response.setToken(null);
+
+        return response;
     }
 
     // ---------- MANAGER ----------
     @Override
-    public UserResponseDTO registerManager(ManagerRegister dto)
-            throws EmailAlreadyExists, MobileNumberAlreadyExists, IncorrectPasswordException {
+    public RegistrationResponseDTO registerManager(ManagerRegister dto)
+            throws EmailAlreadyExists, MobileNumberAlreadyExists,
+            IncorrectPasswordException {
 
-        // ✅ confirm password
         validatePasswordMatch(dto.getPassword(), dto.getConfirmPassword());
-
         validateEmailAndMobile(dto.getEmail(), dto.getMobile());
 
         Branch branch = branchRepository.findById(dto.getBranchId())
@@ -116,6 +136,7 @@ public class AuthServiceImple implements AuthService {
 
         User manager = new User();
         manager.setName(dto.getFullName());
+        manager.setDob(dto.getDob());
         manager.setEmail(dto.getEmail());
         manager.setMobile(dto.getMobile());
         manager.setPassword(encoder.encode(dto.getPassword()));
@@ -124,7 +145,18 @@ public class AuthServiceImple implements AuthService {
         manager.setBranch(branch);
 
         userRepository.save(manager);
-        return mapper.map(manager, UserResponseDTO.class);
+
+        RegistrationResponseDTO response = new RegistrationResponseDTO();
+        response.setUserId(manager.getUserId());
+
+        response.setName(manager.getName());
+        response.setEmail(manager.getEmail());
+        response.setRole(manager.getRole());
+        response.setStatus(manager.getStatus());
+        response.setMessage("Manager registered successfully. Awaiting admin approval");
+        response.setToken(null);
+
+        return response;
     }
 
     // ---------- FETCH USER ----------

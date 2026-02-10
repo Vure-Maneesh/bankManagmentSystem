@@ -1,5 +1,6 @@
 package com.BankManagmentSystem.dtos;
 
+import com.BankManagmentSystem.model.KycStatus;
 import com.BankManagmentSystem.model.Role;
 
 import lombok.AllArgsConstructor;
@@ -9,11 +10,13 @@ import lombok.NoArgsConstructor;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class UserResponseDTO {
+public class RegistrationResponseDTO {
 
     private Long userId;
     private String name;
     private String email;
     private Role role;
-
+    private KycStatus status;
+    private String message;
+    private String token;
 }
