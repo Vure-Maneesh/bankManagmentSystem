@@ -1,25 +1,17 @@
 package com.BankManagmentSystem.model;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
-
-import com.BankManagmentSystem.repository.AccountRepository;
-
-@Component
 public class AccountNumberGenerator {
 
-    @Autowired
-    private AccountRepository accountRepository;
+    private String generateAccountNumber(Account account) {
 
-    public Long generateAccountNumber() {
+        String branchCode = account.getCustomer()
+                .getBranch()
+                .getBranchId()
+                .toString();
 
-        Long accountNumber;
+        String timestamp = String.valueOf(System.currentTimeMillis());
 
-        do {
-            accountNumber = (long) (Math.random() * 1_0000_0000_00L);
-        } while (accountRepository.existsByAccountNumber(accountNumber));
-
-        return accountNumber;
+        return branchCode + timestamp.substring(timestamp.length() - 6);
     }
 
 }
