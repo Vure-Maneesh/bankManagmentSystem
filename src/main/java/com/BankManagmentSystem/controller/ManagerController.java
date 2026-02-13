@@ -11,6 +11,7 @@ import com.BankManagmentSystem.exceptions.ManagerNotFound;
 import com.BankManagmentSystem.interfaces.ManagerService;
 
 @RestController
+@CrossOrigin(origins = "http://localhost:4200/")
 @RequestMapping("/manager")
 public class ManagerController {
 

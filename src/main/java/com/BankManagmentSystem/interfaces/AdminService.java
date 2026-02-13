@@ -14,19 +14,22 @@ import com.BankManagmentSystem.exceptions.BankNotFoundException;
 import com.BankManagmentSystem.exceptions.BranchAlreadyExists;
 import com.BankManagmentSystem.exceptions.BranchNotFound;
 import com.BankManagmentSystem.exceptions.ManagerNotFound;
+import com.BankManagmentSystem.model.User;
 
 public interface AdminService {
 
-    BankResponseDTO createBank(BankRequestDTO dto) throws BankAlreadyExits;
+        BankResponseDTO createBank(BankRequestDTO dto) throws BankAlreadyExits;
 
-    BranchResponseDTO createBranch(BranchRequestDTO dto) throws BankNotFoundException, BranchAlreadyExists;
+        BranchResponseDTO createBranch(BranchRequestDTO dto) throws BankNotFoundException, BranchAlreadyExists;
 
-    public ManagerApprovalResponseDTO approveManager(Long managerId)
-            throws ManagerNotFound;
+        public ManagerApprovalResponseDTO approveManager(Long managerId)
+                        throws ManagerNotFound;
 
-    List<BranchResponseDTO> getAllBranches() throws BankNotFoundException;
+        List<BranchResponseDTO> getAllBranches() throws BankNotFoundException;
 
-    ManagerTransferResponseDTO transferManager(ManagerTransferRequestDTO request)
-            throws ManagerNotFound, BranchNotFound;
+        ManagerTransferResponseDTO transferManager(ManagerTransferRequestDTO request)
+                        throws ManagerNotFound, BranchNotFound;
+
+        List<User> getAllManagers();
 
 }

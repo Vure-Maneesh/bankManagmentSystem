@@ -170,4 +170,11 @@ public class AdminServiceImpl implements AdminService {
                 "Manager transferred successfully");
     }
 
+    @Override
+    public List<User> getAllManagers() {
+
+        return userRepository.findByRole(Role.BRANCH_MANAGER);
+
+    }
+
 }
