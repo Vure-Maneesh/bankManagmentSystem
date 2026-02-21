@@ -1,8 +1,10 @@
 package com.BankManagmentSystem.exceptions;
 
-public class EmailAlreadyExists extends Exception {
+import org.springframework.http.HttpStatus;
+
+public class EmailAlreadyExists extends CustomException {
     public EmailAlreadyExists(String msg) {
-        super(msg);
+        super(msg, HttpStatus.CONFLICT);
     }
 
 }

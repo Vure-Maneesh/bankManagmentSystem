@@ -1,5 +1,7 @@
 package com.BankManagmentSystem.service;
 
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -12,6 +14,7 @@ import com.BankManagmentSystem.exceptions.EmailAlreadyExists;
 import com.BankManagmentSystem.exceptions.IncorrectPasswordException;
 import com.BankManagmentSystem.exceptions.MobileNumberAlreadyExists;
 import com.BankManagmentSystem.interfaces.AuthService;
+import com.BankManagmentSystem.interfaces.EmailService;
 import com.BankManagmentSystem.model.Branch;
 import com.BankManagmentSystem.model.KycStatus;
 import com.BankManagmentSystem.model.Role;
@@ -31,29 +34,30 @@ public class AuthServiceImple implements AuthService {
     @Autowired
     private PasswordEncoder encoder;
 
-    // ---------- COMMON VALIDATION ----------
+    @Autowired
+    private EmailService emailService;
+
+    // ================= VALIDATIONS =================
+
     private void validateEmailAndMobile(String email, String mobile)
             throws EmailAlreadyExists, MobileNumberAlreadyExists {
 
-        if (userRepository.existsByEmail(email)) {
+        if (userRepository.existsByEmail(email))
             throw new EmailAlreadyExists("Email already registered");
-        }
 
-        if (userRepository.existsByMobile(mobile)) {
-            throw new MobileNumberAlreadyExists("Mobile number already registered");
-        }
+        if (userRepository.existsByMobile(mobile))
+            throw new MobileNumberAlreadyExists("Mobile already registered");
     }
 
     private void validatePasswordMatch(String password, String confirmPassword)
             throws IncorrectPasswordException {
 
-        if (!password.equals(confirmPassword)) {
-            throw new IncorrectPasswordException(
-                    "Password and Confirm Password do not match");
-        }
+        if (!password.equals(confirmPassword))
+            throw new IncorrectPasswordException("Passwords do not match");
     }
 
-    // ---------- CUSTOMER ----------
+    // ================= CUSTOMER =================
+
     @Override
     public RegistrationResponseDTO registerCustomer(RegisterRequestDTO dto)
             throws EmailAlreadyExists, MobileNumberAlreadyExists,
@@ -73,19 +77,11 @@ public class AuthServiceImple implements AuthService {
 
         userRepository.save(user);
 
-        RegistrationResponseDTO response = new RegistrationResponseDTO();
-        response.setUserId(user.getUserId());
-        response.setName(user.getName());
-        response.setEmail(user.getEmail());
-        response.setRole(user.getRole());
-        response.setStatus(user.getStatus());
-        response.setMessage("Customer registered successfully");
-        response.setToken(null);
-
-        return response;
+        return mapToDTO(user, "Customer registered successfully");
     }
 
-    // ---------- ADMIN ----------
+    // ================= ADMIN =================
+
     @Override
     public RegistrationResponseDTO registerAdmin(RegisterRequestDTO dto)
             throws AdminAlreadyExists, EmailAlreadyExists,
@@ -93,9 +89,8 @@ public class AuthServiceImple implements AuthService {
 
         validatePasswordMatch(dto.getPassword(), dto.getConfirmPassword());
 
-        if (userRepository.existsByRole(Role.ADMIN)) {
+        if (userRepository.existsByRole(Role.ADMIN))
             throw new AdminAlreadyExists("Admin already exists");
-        }
 
         validateEmailAndMobile(dto.getEmail(), dto.getMobile());
 
@@ -110,19 +105,11 @@ public class AuthServiceImple implements AuthService {
 
         userRepository.save(admin);
 
-        RegistrationResponseDTO response = new RegistrationResponseDTO();
-        response.setUserId(admin.getUserId());
-        response.setName(admin.getName());
-        response.setEmail(admin.getEmail());
-        response.setRole(admin.getRole());
-        response.setStatus(admin.getStatus());
-        response.setMessage("Admin registered successfully");
-        response.setToken(null);
-
-        return response;
+        return mapToDTO(admin, "Admin registered successfully");
     }
 
-    // ---------- MANAGER ----------
+    // ================= MANAGER =================
+
     @Override
     public RegistrationResponseDTO registerManager(ManagerRegister dto)
             throws EmailAlreadyExists, MobileNumberAlreadyExists,
@@ -131,11 +118,16 @@ public class AuthServiceImple implements AuthService {
         validatePasswordMatch(dto.getPassword(), dto.getConfirmPassword());
         validateEmailAndMobile(dto.getEmail(), dto.getMobile());
 
-        Branch branch = branchRepository.findById(dto.getBranchId())
+        Branch branch = branchRepository.findById((long) dto.getBranchId())
                 .orElseThrow(() -> new RuntimeException("Branch not found"));
 
+        // Check if branch already has manager
+        if (userRepository.existsByBranchAndRole(branch, Role.BRANCH_MANAGER)) {
+            throw new RuntimeException("Branch already has a manager");
+        }
+
         User manager = new User();
-        manager.setName(dto.getFullName());
+        manager.setName(dto.getName());
         manager.setDob(dto.getDob());
         manager.setEmail(dto.getEmail());
         manager.setMobile(dto.getMobile());
@@ -146,23 +138,57 @@ public class AuthServiceImple implements AuthService {
 
         userRepository.save(manager);
 
-        RegistrationResponseDTO response = new RegistrationResponseDTO();
-        response.setUserId(manager.getUserId());
+        emailService.sendPendingApprovalEmail(manager);
 
-        response.setName(manager.getName());
-        response.setEmail(manager.getEmail());
-        response.setRole(manager.getRole());
-        response.setStatus(manager.getStatus());
-        response.setMessage("Manager registered successfully. Awaiting admin approval");
-        response.setToken(null);
-
-        return response;
+        return mapToDTO(manager,
+                "Manager registered successfully. Awaiting admin approval");
     }
 
-    // ---------- FETCH USER ----------
+    // ================= FETCH USER =================
+
     @Override
-    public User getByEmail(String email) {
-        return userRepository.findByEmail(email)
+    public RegistrationResponseDTO getByEmail(String email) {
+
+        User user = userRepository.findByEmailWithDetails(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
+
+        return mapToDTO(user, null);
+    }
+
+    @Override
+    public List<RegistrationResponseDTO> getAllUsers() {
+
+        return userRepository.findAllWithBranchAndBank()
+                .stream()
+                .map(user -> mapToDTO(user, null))
+                .toList();
+    }
+
+    // ================= DTO MAPPING =================
+
+    private RegistrationResponseDTO mapToDTO(User user, String message) {
+
+        RegistrationResponseDTO dto = new RegistrationResponseDTO();
+
+        dto.setUserId(user.getUserId());
+        dto.setName(user.getName());
+        dto.setEmail(user.getEmail());
+        dto.setMobile(user.getMobile());
+        dto.setRole(user.getRole());
+        dto.setStatus(user.getStatus());
+        dto.setMessage(message);
+        dto.setToken(null);
+
+        if (user.getBranch() != null) {
+            dto.setBranchId(user.getBranch().getBranchId());
+            dto.setBranchName(user.getBranch().getName());
+
+            if (user.getBranch().getBank() != null) {
+                dto.setBankId(user.getBranch().getBank().getBankId());
+                dto.setBankName(user.getBranch().getBank().getName());
+            }
+        }
+
+        return dto;
     }
 }

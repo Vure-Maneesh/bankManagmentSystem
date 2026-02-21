@@ -2,6 +2,9 @@ package com.BankManagmentSystem.model;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -22,6 +25,7 @@ import lombok.NoArgsConstructor;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
+@JsonIgnoreProperties({ "hibernateLazyInitializer", "handler" })
 public class User {
 
     @Id
@@ -52,8 +56,9 @@ public class User {
 
     private boolean enabled = true;
 
+    // ✅ ONLY relationship needed
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "branch_id", nullable = true)
+    @JoinColumn(name = "branch_id")
     private Branch branch;
 
     @Column(updatable = false)

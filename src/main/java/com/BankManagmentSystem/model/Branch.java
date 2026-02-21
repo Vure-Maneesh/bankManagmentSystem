@@ -2,6 +2,8 @@ package com.BankManagmentSystem.model;
 
 import java.time.LocalDateTime;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -10,7 +12,6 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
-import jakarta.persistence.OneToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
@@ -23,6 +24,7 @@ import lombok.NoArgsConstructor;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
+@JsonIgnoreProperties({ "hibernateLazyInitializer", "handler" })
 public class Branch {
 
     @Id
@@ -40,10 +42,6 @@ public class Branch {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "bank_id", nullable = false)
     private Bank bank;
-
-    @OneToOne
-    @JoinColumn(name = "manager_id", unique = true)
-    private User branchManager;
 
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

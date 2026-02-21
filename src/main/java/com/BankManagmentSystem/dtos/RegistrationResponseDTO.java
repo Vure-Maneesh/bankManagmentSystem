@@ -15,8 +15,15 @@ public class RegistrationResponseDTO {
     private Long userId;
     private String name;
     private String email;
+    private String mobile;
     private Role role;
     private KycStatus status;
+
+    private Long branchId;
+    private String branchName;
+
+    private Long bankId;
+    private String bankName;
     private String message;
     private String token;
 }

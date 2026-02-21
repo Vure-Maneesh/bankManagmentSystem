@@ -2,9 +2,9 @@ package com.BankManagmentSystem.exceptions;
 
 import org.springframework.http.HttpStatus;
 
-public class IncorrectPasswordException extends CustomException {
+public class InvalidCredentialsException extends CustomException {
 
-    public IncorrectPasswordException(String msg) {
+    public InvalidCredentialsException(String msg) {
         super(msg, HttpStatus.UNAUTHORIZED);
     }
 }

@@ -1,9 +1,11 @@
 package com.BankManagmentSystem.exceptions;
 
-public class CustomerAlreadyExists extends Exception {
+import org.springframework.http.HttpStatus;
+
+public class CustomerAlreadyExists extends CustomException {
 
     public CustomerAlreadyExists(String msg) {
-        super(msg);
+        super(msg, HttpStatus.CONFLICT);
     }
 
 }

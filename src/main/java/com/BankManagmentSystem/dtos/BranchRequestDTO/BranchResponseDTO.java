@@ -12,7 +12,7 @@ import lombok.NoArgsConstructor;
 public class BranchResponseDTO {
 
     private Long id;
-    private String branchName;
+    private String name;
     private String city;
     private String address;
     private String bankName;

@@ -1,8 +1,10 @@
 package com.BankManagmentSystem.exceptions;
 
-public class BranchAlreadyExists extends Exception {
+import org.springframework.http.HttpStatus;
+
+public class BranchAlreadyExists extends CustomException {
     public BranchAlreadyExists(String msg) {
-        super(msg);
+        super(msg, HttpStatus.CONFLICT);
     }
 
 }

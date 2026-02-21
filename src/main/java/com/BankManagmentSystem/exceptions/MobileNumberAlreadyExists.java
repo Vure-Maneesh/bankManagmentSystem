@@ -1,8 +1,10 @@
 package com.BankManagmentSystem.exceptions;
 
-public class MobileNumberAlreadyExists extends Exception {
+import org.springframework.http.HttpStatus;
+
+public class MobileNumberAlreadyExists extends CustomException {
     public MobileNumberAlreadyExists(String msg) {
-        super(msg);
+        super(msg, HttpStatus.CONFLICT);
     }
 
 }

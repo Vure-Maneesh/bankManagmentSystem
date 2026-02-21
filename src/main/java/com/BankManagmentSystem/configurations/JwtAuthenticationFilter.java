@@ -12,6 +12,7 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.lang.NonNull;
 
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
@@ -26,11 +27,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         this.userDetailsService = userDetailsService;
     }
 
+    // ✅ VERY IMPORTANT FIX
+    @Override
+    protected boolean shouldNotFilter(@NonNull HttpServletRequest request) {
+        return request.getServletPath().startsWith("/auth");
+    }
+
     @Override
     protected void doFilterInternal(
-            HttpServletRequest request,
-            HttpServletResponse response,
-            FilterChain filterChain)
+            @NonNull HttpServletRequest request,
+            @NonNull HttpServletResponse response,
+            @NonNull FilterChain filterChain)
             throws ServletException, IOException {
 
         String authHeader = request.getHeader("Authorization");
@@ -38,20 +45,27 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
 
             String token = authHeader.substring(7);
-            String email = jwtService.extractUsername(token);
 
-            if (email != null &&
-                    SecurityContextHolder.getContext().getAuthentication() == null) {
+            try {
+                String email = jwtService.extractUsername(token);
 
-                UserDetails userDetails = userDetailsService.loadUserByUsername(email);
+                if (email != null &&
+                        SecurityContextHolder.getContext().getAuthentication() == null) {
 
-                UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                        userDetails,
-                        null,
-                        userDetails.getAuthorities());
+                    UserDetails userDetails = userDetailsService.loadUserByUsername(email);
 
-                SecurityContextHolder.getContext()
-                        .setAuthentication(authToken);
+                    UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+                            userDetails,
+                            null,
+                            userDetails.getAuthorities());
+
+                    SecurityContextHolder.getContext()
+                            .setAuthentication(authToken);
+                }
+
+            } catch (Exception e) {
+                // If token invalid → just continue
+                // Do NOT block login
             }
         }
 

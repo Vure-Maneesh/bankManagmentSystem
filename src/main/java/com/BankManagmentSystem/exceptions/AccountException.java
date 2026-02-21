@@ -1,8 +1,10 @@
 package com.BankManagmentSystem.exceptions;
 
-public class AccountException extends Exception {
+import org.springframework.http.HttpStatus;
+
+public class AccountException extends CustomException {
     public AccountException(String msg) {
-        super(msg);
+        super(msg, HttpStatus.BAD_REQUEST);
     }
 
 }

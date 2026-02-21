@@ -1,9 +1,11 @@
 package com.BankManagmentSystem.exceptions;
 
-public class UserNotFoundException extends Exception {
+import org.springframework.http.HttpStatus;
+
+public class UserNotFoundException extends CustomException {
 
     public UserNotFoundException(String msg) {
-        super(msg);
+        super(msg, HttpStatus.NOT_FOUND);
     }
 
 }

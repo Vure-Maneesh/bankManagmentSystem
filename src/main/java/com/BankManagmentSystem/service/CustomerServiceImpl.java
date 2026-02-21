@@ -1,21 +1,20 @@
 package com.BankManagmentSystem.service;
 
+import java.util.List;
+
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import com.BankManagmentSystem.dtos.AccountRequestDTO;
 import com.BankManagmentSystem.dtos.AccountResponseDTO;
+import com.BankManagmentSystem.dtos.BranchRequestDTO.MyAccount;
+import com.BankManagmentSystem.exceptions.CustomException;
+import com.BankManagmentSystem.exceptions.CustomerNotFound;
 import com.BankManagmentSystem.interfaces.CustomerService;
-import com.BankManagmentSystem.model.Account;
-import com.BankManagmentSystem.model.AccountStatus;
-import com.BankManagmentSystem.model.Branch;
-import com.BankManagmentSystem.model.KycStatus;
-import com.BankManagmentSystem.model.Role;
-import com.BankManagmentSystem.model.User;
-import com.BankManagmentSystem.repository.AccountRepository;
-import com.BankManagmentSystem.repository.BranchRepository;
-import com.BankManagmentSystem.repository.UserRepository;
+import com.BankManagmentSystem.model.*;
+import com.BankManagmentSystem.repository.*;
 
 import jakarta.transaction.Transactional;
 
@@ -23,79 +22,73 @@ import jakarta.transaction.Transactional;
 public class CustomerServiceImpl implements CustomerService {
 
     @Autowired
-    BranchRepository branchRepository;
+    private BranchRepository branchRepository;
 
     @Autowired
-    AccountRepository accountRepository;
+    private AccountRepository accountRepository;
 
     @Autowired
-    UserRepository repository;
+    private UserRepository userRepository;
 
     @Autowired
-    ModelMapper mapper;
+    private ModelMapper mapper;
 
     @Override
     @Transactional
-    public AccountResponseDTO openAccount(AccountRequestDTO accountRequestDTO) {
+    public AccountResponseDTO openAccount(AccountRequestDTO dto) {
 
-        User user = new User();
+        String email = SecurityContextHolder
+                .getContext()
+                .getAuthentication()
+                .getName();
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
 
         if (user.getRole() != Role.CUSTOMER) {
-            throw new RuntimeException("Only customers can request a bank account");
+            throw new RuntimeException("Only customers can request accounts");
         }
 
         if (user.getStatus() != KycStatus.APPROVED) {
-            throw new RuntimeException("Please complete KYC before requesting an account");
+            throw new RuntimeException("Please complete KYC before requesting account");
         }
 
+        // Prevent duplicate ACTIVE account
         if (accountRepository.existsByCustomerAndAccountTypeAndStatus(
-                user,
-                accountRequestDTO.getAccountType(),
-                AccountStatus.ACTIVE)) {
+                user, dto.getAccountType(), AccountStatus.ACTIVE)) {
 
             throw new RuntimeException(
-                    "You already have an active " + accountRequestDTO.getAccountType() + " account");
+                    "You already have an active " + dto.getAccountType() + " account");
         }
 
+        // Prevent duplicate PENDING request
         if (accountRepository.existsByCustomerAndAccountTypeAndStatus(
-                user,
-                accountRequestDTO.getAccountType(),
-                AccountStatus.PENDING)) {
+                user, dto.getAccountType(), AccountStatus.PENDING)) {
 
             throw new RuntimeException(
                     "You already have a pending request for this account type");
         }
 
+        Branch branch = branchRepository.findById(dto.getBranchId())
+                .orElseThrow(() -> new RuntimeException("Branch not found"));
+
         if (user.getBranch() == null) {
-
-            Branch branch = branchRepository.findById(accountRequestDTO.getBranchId())
-                    .orElseThrow(() -> new RuntimeException("Branch not found"));
-
             user.setBranch(branch);
-            repository.save(user);
-
-        } else {
-
-            if (!user.getBranch().getBranchId()
-                    .equals(accountRequestDTO.getBranchId())) {
-
-                throw new RuntimeException(
-                        "You cannot change branch once assigned");
-            }
+            userRepository.save(user);
+        } else if (!user.getBranch().getBranchId().equals(dto.getBranchId())) {
+            throw new RuntimeException("You cannot change branch once assigned");
         }
 
         Account account = new Account();
         account.setCustomer(user);
-        account.setAccountType(accountRequestDTO.getAccountType());
+        account.setAccountType(dto.getAccountType());
         account.setBalance(
-                accountRequestDTO.getInitialDeposit() != null
-                        ? accountRequestDTO.getInitialDeposit()
-                        : 0.0);
+                dto.getInitialDeposit() != null ? dto.getInitialDeposit() : 0.0);
         account.setStatus(AccountStatus.PENDING);
 
-        Account savedAccount = accountRepository.save(account);
+        Account saved = accountRepository.save(account);
 
-        return mapper.map(savedAccount, AccountResponseDTO.class);
+        return mapper.map(saved, AccountResponseDTO.class);
     }
 
 }

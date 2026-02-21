@@ -18,7 +18,7 @@ import lombok.NoArgsConstructor;
 public class ManagerRegister {
 
     @NotBlank
-    private String fullName;
+    private String name;
 
     @NotNull
     @Past

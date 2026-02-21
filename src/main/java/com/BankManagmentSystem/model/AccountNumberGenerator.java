@@ -2,7 +2,7 @@ package com.BankManagmentSystem.model;
 
 public class AccountNumberGenerator {
 
-    private String generateAccountNumber(Account account) {
+    public String generateAccountNumber(Account account) {
 
         String branchCode = account.getCustomer()
                 .getBranch()

@@ -22,6 +22,12 @@ public interface AccountRepository extends JpaRepository<Account, Long> {
 
     boolean existsByCustomerAndAccountType(User customer, AccountType accountType);
 
+    List<Account> findByCustomer_Branch_BranchId(Long branchId);
+
+    List<Account> findByCustomer_Branch_BranchIdAndStatus(
+            Long branchId,
+            AccountStatus status);
+
     boolean existsByCustomerAndAccountTypeAndStatus(
             User customer,
             AccountType accountType,

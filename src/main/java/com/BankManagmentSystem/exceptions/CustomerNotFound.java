@@ -1,8 +1,10 @@
 package com.BankManagmentSystem.exceptions;
 
-public class CustomerNotFound extends Exception {
+import org.springframework.http.HttpStatus;
+
+public class CustomerNotFound extends CustomException {
     public CustomerNotFound(String msg) {
-        super(msg);
+        super(msg, HttpStatus.NOT_FOUND);
     }
 
 }

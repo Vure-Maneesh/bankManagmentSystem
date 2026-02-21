@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class BranchRequestDTO {
 
-    private String branchName;
+    private String name;
     private String city;
     private String address;
     private Long bankId;

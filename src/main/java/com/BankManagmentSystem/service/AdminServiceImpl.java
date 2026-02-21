@@ -1,33 +1,19 @@
 package com.BankManagmentSystem.service;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import com.BankManagmentSystem.dtos.ManagerApprovalResponseDTO;
-import com.BankManagmentSystem.dtos.ManagerTransferRequestDTO;
-import com.BankManagmentSystem.dtos.ManagerTransferResponseDTO;
-import com.BankManagmentSystem.dtos.BankRequestDTO.BankRequestDTO;
-import com.BankManagmentSystem.dtos.BankRequestDTO.BankResponseDTO;
-import com.BankManagmentSystem.dtos.BranchRequestDTO.BranchRequestDTO;
-import com.BankManagmentSystem.dtos.BranchRequestDTO.BranchResponseDTO;
-import com.BankManagmentSystem.exceptions.BankAlreadyExits;
-import com.BankManagmentSystem.exceptions.BankNotFoundException;
-import com.BankManagmentSystem.exceptions.BranchAlreadyExists;
-import com.BankManagmentSystem.exceptions.BranchNotFound;
-import com.BankManagmentSystem.exceptions.ManagerNotFound;
+import com.BankManagmentSystem.dtos.*;
+import com.BankManagmentSystem.dtos.BankRequestDTO.*;
+import com.BankManagmentSystem.dtos.BranchRequestDTO.*;
+import com.BankManagmentSystem.exceptions.*;
 import com.BankManagmentSystem.interfaces.AdminService;
-import com.BankManagmentSystem.model.Bank;
-import com.BankManagmentSystem.model.Branch;
-import com.BankManagmentSystem.model.KycStatus;
-import com.BankManagmentSystem.model.Role;
-import com.BankManagmentSystem.model.User;
-import com.BankManagmentSystem.repository.BankRepository;
-import com.BankManagmentSystem.repository.BranchRepository;
-import com.BankManagmentSystem.repository.UserRepository;
+import com.BankManagmentSystem.interfaces.EmailService;
+import com.BankManagmentSystem.model.*;
+import com.BankManagmentSystem.repository.*;
 
 import jakarta.transaction.Transactional;
 
@@ -42,17 +28,22 @@ public class AdminServiceImpl implements AdminService {
     private BranchRepository branchRepository;
 
     @Autowired
-    UserRepository userRepository;
+    private UserRepository userRepository;
 
     @Autowired
     private ModelMapper mapper;
 
-    // ---------- CREATE BANK (ONLY ONCE) ----------
+    @Autowired
+    private EmailService emailService;
+
+    // ================= CREATE BANK =================
+
     @Override
-    public BankResponseDTO createBank(BankRequestDTO dto) throws BankAlreadyExits {
+    public BankResponseDTO createBank(BankRequestDTO dto)
+            throws BankAlreadyExits {
 
         if (bankRepository.count() >= 1) {
-            throw new BankAlreadyExits("Bank already exists. Cannot create another bank");
+            throw new BankAlreadyExits("Bank already exists");
         }
 
         Bank bank = new Bank();
@@ -61,38 +52,54 @@ public class AdminServiceImpl implements AdminService {
         bank.setIfscCode(dto.getIfscCode());
 
         bankRepository.save(bank);
+
         return mapper.map(bank, BankResponseDTO.class);
     }
 
-    // ---------- CREATE BRANCH ----------
+    // ================= GET BANK =================
+
+    @Override
+    public BankResponseDTO getBank() {
+
+        Bank bank = bankRepository.findAll()
+                .stream()
+                .findFirst()
+                .orElseThrow(() -> new BankNotFoundException("No bank configured yet"));
+
+        return mapper.map(bank, BankResponseDTO.class);
+    }
+
+    // ================= CREATE BRANCH =================
+
     @Override
     public BranchResponseDTO createBranch(BranchRequestDTO dto)
             throws BankNotFoundException, BranchAlreadyExists {
 
-        // get the single existing bank
         Bank bank = bankRepository.findAll()
                 .stream()
                 .findFirst()
                 .orElseThrow(() -> new BankNotFoundException("Bank not created yet"));
 
-        // prevent duplicate branch names under same bank
-        if (branchRepository.existsByNameAndBank(dto.getBranchName(), bank)) {
-            throw new BranchAlreadyExists("Branch already exists under this bank");
+        if (branchRepository.existsByNameAndBank(dto.getName(), bank)) {
+            throw new BranchAlreadyExists("Branch already exists");
         }
 
         Branch branch = new Branch();
-        branch.setName(dto.getBranchName());
+        branch.setName(dto.getName());
         branch.setCity(dto.getCity());
         branch.setAddress(dto.getAddress());
         branch.setBank(bank);
 
         branchRepository.save(branch);
+
         return mapper.map(branch, BranchResponseDTO.class);
     }
 
-    // ---------- GET ALL BRANCHES OF BANK ----------
+    // ================= GET ALL BRANCHES =================
+
     @Override
-    public List<BranchResponseDTO> getAllBranches() throws BankNotFoundException {
+    public List<BranchResponseDTO> getAllBranches()
+            throws BankNotFoundException {
 
         Bank bank = bankRepository.findAll()
                 .stream()
@@ -102,10 +109,11 @@ public class AdminServiceImpl implements AdminService {
         return branchRepository.findByBank(bank)
                 .stream()
                 .map(branch -> mapper.map(branch, BranchResponseDTO.class))
-                .collect(Collectors.toList());
+                .toList();
     }
 
-    // ---------- APPROVE MANAGER ----------
+    // ================= APPROVE MANAGER =================
+
     @Override
     public ManagerApprovalResponseDTO approveManager(Long managerId)
             throws ManagerNotFound {
@@ -120,6 +128,8 @@ public class AdminServiceImpl implements AdminService {
         manager.setStatus(KycStatus.APPROVED);
         userRepository.save(manager);
 
+        emailService.sendApprovalEmail(manager);
+
         return new ManagerApprovalResponseDTO(
                 manager.getUserId(),
                 manager.getName(),
@@ -127,37 +137,20 @@ public class AdminServiceImpl implements AdminService {
                 "Manager approved successfully");
     }
 
+    // ================= TRANSFER MANAGER =================
+
     @Override
-    public ManagerTransferResponseDTO transferManager(ManagerTransferRequestDTO requestDTO)
+    public ManagerTransferResponseDTO transferManager(
+            ManagerTransferRequestDTO requestDTO)
             throws ManagerNotFound, BranchNotFound {
 
         User manager = userRepository.findById(requestDTO.getManagerId())
                 .orElseThrow(() -> new ManagerNotFound("Manager Not Found"));
 
-        if (manager.getRole() != Role.BRANCH_MANAGER) {
-            throw new IllegalStateException("User is not a Branch Manager");
-        }
-
-        if (manager.getStatus() != KycStatus.APPROVED) {
-            throw new IllegalStateException("Only approved managers can be transferred");
-        }
-
-        Branch targetBranch = branchRepository.findById(requestDTO.getTargetBranchId())
+        Branch targetBranch = branchRepository.findById(
+                requestDTO.getTargetBranchId())
                 .orElseThrow(() -> new BranchNotFound("Target branch not found"));
 
-        if (targetBranch.getBranchManager() != null) {
-            throw new IllegalStateException("Target branch already has a manager");
-        }
-
-        Branch oldBranch = manager.getBranch();
-        Long oldBranchId = oldBranch != null ? oldBranch.getBranchId() : null;
-
-        if (oldBranch != null) {
-            oldBranch.setBranchManager(null);
-            branchRepository.save(oldBranch);
-        }
-
-        targetBranch.setBranchManager(manager);
         manager.setBranch(targetBranch);
 
         branchRepository.save(targetBranch);
@@ -165,16 +158,46 @@ public class AdminServiceImpl implements AdminService {
 
         return new ManagerTransferResponseDTO(
                 manager.getUserId(),
-                oldBranchId,
+                null,
                 targetBranch.getBranchId(),
                 "Manager transferred successfully");
     }
 
+    // ================= GET ALL MANAGERS =================
+
     @Override
-    public List<User> getAllManagers() {
+    public List<RegistrationResponseDTO> getAllManagers() {
 
-        return userRepository.findByRole(Role.BRANCH_MANAGER);
-
+        return userRepository.findAllWithBranchAndBank()
+                .stream()
+                .filter(user -> user.getRole() == Role.BRANCH_MANAGER)
+                .map(this::mapToDTO)
+                .toList();
     }
 
+    // ================= ENTITY → DTO MAPPING =================
+
+    private RegistrationResponseDTO mapToDTO(User user) {
+
+        RegistrationResponseDTO dto = new RegistrationResponseDTO();
+
+        dto.setUserId(user.getUserId());
+        dto.setName(user.getName());
+        dto.setEmail(user.getEmail());
+        dto.setMobile(user.getMobile());
+        dto.setRole(user.getRole());
+        dto.setStatus(user.getStatus());
+
+        if (user.getBranch() != null) {
+            dto.setBranchId(user.getBranch().getBranchId());
+            dto.setBranchName(user.getBranch().getName());
+
+            if (user.getBranch().getBank() != null) {
+                dto.setBankId(user.getBranch().getBank().getBankId());
+                dto.setBankName(user.getBranch().getBank().getName());
+            }
+        }
+
+        return dto;
+    }
 }

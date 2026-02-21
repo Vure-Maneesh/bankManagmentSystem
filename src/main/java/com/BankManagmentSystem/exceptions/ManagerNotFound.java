@@ -1,8 +1,10 @@
 package com.BankManagmentSystem.exceptions;
 
-public class ManagerNotFound extends Exception {
+import org.springframework.http.HttpStatus;
+
+public class ManagerNotFound extends CustomException {
     public ManagerNotFound(String msg) {
-        super(msg);
+        super(msg, HttpStatus.NOT_FOUND);
     }
 
 }

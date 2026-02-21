@@ -3,6 +3,7 @@ package com.BankManagmentSystem.controller;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.web.bind.annotation.*;
 
@@ -74,17 +75,24 @@ public class AuthController {
         // =========================
         @PostMapping("/login")
         public ResponseEntity<LoginResponseDTO> login(
-                        @RequestBody @Valid LoginRequest request) {
+                        @RequestBody @Valid LoginRequest request)
+                        throws InvalidCredentialsException {
 
-                // 1. Authenticate credentials
-                authenticationManager.authenticate(
-                                new UsernamePasswordAuthenticationToken(
-                                                request.getEmail(),
-                                                request.getPassword()));
+                try {
+                        // 1. Authenticate credentials
+                        authenticationManager.authenticate(
+                                        new UsernamePasswordAuthenticationToken(
+                                                        request.getEmail(),
+                                                        request.getPassword()));
+                } catch (BadCredentialsException e) {
+                        throw new InvalidCredentialsException(
+                                        "Invalid email or password. Please try again.");
+                }
 
                 // 2. Fetch user
                 User user = userRepository.findByEmail(request.getEmail())
-                                .orElseThrow(() -> new RuntimeException("User not found"));
+                                .orElseThrow(() -> new InvalidCredentialsException(
+                                                "Invalid email or password. Please try again."));
 
                 // 3. Generate JWT
                 String token = jwtService.generateToken(user);

@@ -21,6 +21,11 @@ public class ManagerController {
         this.managerService = managerService;
     }
 
+    @GetMapping("/branch")
+    public ResponseEntity<?> getAccountsByBranch() {
+        return ResponseEntity.ok(managerService.getAccountsByBranch());
+    }
+
     @PutMapping("/approve/{accountId}")
     public ResponseEntity<String> approveAccount(
             @PathVariable Long accountId) throws AccountNotFoundException, ManagerNotFound, AccountException {
@@ -42,5 +47,10 @@ public class ManagerController {
     @GetMapping("/allcustomers")
     public ResponseEntity<?> getAllCustomers() {
         return new ResponseEntity<>(managerService.getAllAccounts(), HttpStatus.OK);
+    }
+
+    @GetMapping("/branch/all")
+    public ResponseEntity<?> getAllAccountsByBranch() {
+        return ResponseEntity.ok(managerService.getAllAccountsByBranch());
     }
 }

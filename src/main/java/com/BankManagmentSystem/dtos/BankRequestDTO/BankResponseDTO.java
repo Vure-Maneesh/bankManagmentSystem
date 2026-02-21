@@ -14,6 +14,7 @@ public class BankResponseDTO {
     private Long id;
     private String bankName;
     private String ifscCode;
+    private String headOffice;
     private LocalDateTime createdLocalDateTime;
 
     private LocalDateTime updatedLocalDateTime;

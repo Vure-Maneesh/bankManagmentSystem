@@ -1,8 +1,10 @@
 package com.BankManagmentSystem.exceptions;
 
-public class BankAlreadyExits extends Exception {
+import org.springframework.http.HttpStatus;
+
+public class BankAlreadyExits extends CustomException {
     public BankAlreadyExits(String msg) {
-        super(msg);
+        super(msg, HttpStatus.CONFLICT);
     }
 
 }
